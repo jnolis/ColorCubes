@@ -42,6 +42,8 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="BloomComponent.cs" />
+    <Compile Include="BloomSettings.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Triangle.cs" />
     <Compile Include="Program.cs" />

@@ -8,7 +8,7 @@ module Shapes =
         N: int
         Points: Map<int*int*int,Color>
         }
-    
+
     type Vertex = 
         {
         PositionX: float
@@ -56,7 +56,7 @@ module Shapes =
         let (baseH,baseS,baseV) = colorToHsv color
         let angle = r.NextDouble()*360.0
         let dist = Math.Sqrt(-2.0*Math.Log(r.NextDouble())) * Math.Sin(2.0*Math.PI*r.NextDouble())
-        let addedS = Math.Sin(angle)*step*dist
+        let addedS = 0.0 //Math.Sin(angle)*step*dist
         let addedV = Math.Cos(angle)*step*dist
         let newS = (baseS + addedS) |> min 1.0 |> max 0.0
         let newV = (baseV + addedV) |> min 1.0 |> max 0.0
@@ -69,11 +69,7 @@ module Shapes =
             |> Seq.fold (fun (tH,tS,tV,count) (h,s,v) -> (tH+h,tS+s,tV+v,count+1)) (0.0,0.0,0.0,0)
         let floatCount = float count
         colorFromHsv (totalHue/floatCount,totalSaturation/floatCount,totalValue/floatCount)
-    
-    let rec cartesianProduct LL = 
-        match LL with
-        | [] -> Seq.singleton []
-        | L::Ls -> seq {for x in L do for xs in cartesianProduct Ls -> x::xs}
+  
 
     let generateAllPointsOnSurface (isDiamond:bool) (n:int) (step:int) =
         let side = 
@@ -201,3 +197,16 @@ module Shapes =
                 NormalZ = nZ
             })
         |> Array.ofSeq
+
+    let randomLocation (range:int) =
+        let r = new System.Random()
+        let randomInRange () = float (r.Next(range) * (r.Next(2)*2-1))
+        (randomInRange(), randomInRange(), randomInRange())
+
+    let shiftVertices (position:float*float*float) (vertices: Vertex array) =
+        let (x,y,z) = position
+        vertices
+        |> Array.map (fun v -> {v with PositionX = v.PositionX + x; PositionY = v.PositionY + y; PositionZ = v.PositionZ + z})
+
+    let shiftRandomVertices range vertices =
+        shiftVertices (randomLocation range) vertices

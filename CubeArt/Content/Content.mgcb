@@ -13,3 +13,21 @@
 
 #---------------------------------- Content ---------------------------------#
 
+#begin BloomCombine.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:BloomCombine.fx
+
+#begin BloomExtract.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:BloomExtract.fx
+
+#begin GaussianBlur.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:GaussianBlur.fx
+

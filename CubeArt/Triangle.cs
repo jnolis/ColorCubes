@@ -1,10 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using System.Drawing.Imaging;
 using System.Drawing;
-using System;
-using System.IO;
+using BloomPostprocess;
 
 namespace TriangleRender
 {
@@ -15,7 +13,7 @@ namespace TriangleRender
     {
         GraphicsDeviceManager graphics;
         bool saveToImage;
-
+        BloomComponent bloom;
         //Camera
         Matrix projectionMatrix;
         Matrix viewMatrix;
@@ -24,7 +22,6 @@ namespace TriangleRender
 
         //BasicEffect for rendering
         BasicEffect basicEffect;
-
         //Geometric info
         Helpers.VertexPositionColorNormal[] triangleVertices;
         VertexBuffer vertexBuffer;
@@ -60,6 +57,12 @@ namespace TriangleRender
             depth = 80f;
             //Setup Camera
 
+            //bloom = new BloomComponent(this);
+            //Components.Add(bloom);
+            //bloom.Settings = new BloomSettings("None", 0.0f, 0, 0f, 1, 0, 0);
+            //bloom.Initialize();
+            //System.Console.WriteLine(bloom.Settings.BloomThreshold.ToString());
+
             worldMatrix = Matrix.Identity;
             viewMatrix = Matrix.CreateLookAt(new Vector3(-width/2,-width/2, -width/ 2), new Vector3(0,0, 0), new Vector3(0, 0, -1));
 
@@ -81,15 +84,32 @@ namespace TriangleRender
             //vertexBuffer = new VertexBuffer(GraphicsDevice, typeof(
             //   Helpers.VertexPositionColorNormal), 36, BufferUsage.
             //   WriteOnly);
-            var cube = Generate.Shapes.cubeToTriangles(Generate.Shapes.colorCube(3, Generate.Shapes.createColor(0.5, 0.5, 0.5)));
-            triangleVertices = new Helpers.VertexPositionColorNormal[cube.Length];
-            for(int i = 0; i < cube.Length; i++){
-                triangleVertices[i] = new Helpers.VertexPositionColorNormal(
-                    new Vector3((float) cube[i].PositionX, (float) cube[i].PositionY, (float) cube[i].PositionZ), 
-                    new Microsoft.Xna.Framework.Color((float)cube[i].ColorR, (float)cube[i].ColorG, (float)cube[i].ColorB), 
-                    new Vector3((float)cube[i].NormalX, (float)cube[i].NormalY, (float)cube[i].NormalZ));
+            Generate.Shapes.Vertex [] [] cubes = {
+                    Generate.Shapes.shiftRandomVertices(10, Generate.Shapes.cubeToTriangles(Generate.Shapes.colorCube(3, Generate.Shapes.createColor(0.5, 0.5, 0.5)))),
+                    Generate.Shapes.shiftRandomVertices(10, Generate.Shapes.cubeToTriangles(Generate.Shapes.colorCube(2, Generate.Shapes.createColor(0.5, 0.75, 0.65))))
+                };
+            int vertexCount = 0;
+
+            for(int i = 0; i < cubes.Length; i++)
+            {
+                vertexCount = vertexCount + cubes[i].Length;
             }
-            vertexBuffer = new VertexBuffer(GraphicsDevice, typeof(Helpers.VertexPositionColorNormal), cube.Length, BufferUsage.WriteOnly);
+
+            triangleVertices = new Helpers.VertexPositionColorNormal[vertexCount];
+            int idx = 0;
+            for (int h = 0; h < cubes.Length; h++)
+            {
+                for (int i = 0; i < cubes[h].Length; i++)
+                {
+                    triangleVertices[idx] = new Helpers.VertexPositionColorNormal(
+                        new Vector3((float)cubes[h][i].PositionX, (float)cubes[h][i].PositionY, (float)cubes[h][i].PositionZ),
+                        new Microsoft.Xna.Framework.Color((float)cubes[h][i].ColorR, (float)cubes[h][i].ColorG, (float)cubes[h][i].ColorB),
+                        new Vector3((float)cubes[h][i].NormalX, (float)cubes[h][i].NormalY, (float)cubes[h][i].NormalZ));
+                    idx += 1;
+                }
+
+            }
+            vertexBuffer = new VertexBuffer(GraphicsDevice, typeof(Helpers.VertexPositionColorNormal), triangleVertices.Length, BufferUsage.WriteOnly);
             ////Geometry  - a simple triangle about the origin
             //triangleVertices = new Helpers.VertexPositionColorNormal[36];
 
@@ -146,6 +166,7 @@ namespace TriangleRender
         /// </summary>
         protected override void LoadContent()
         {
+
         }
 
         /// <summary>
@@ -164,7 +185,7 @@ namespace TriangleRender
 
         protected override void Draw(GameTime gameTime)
         {
-
+            //bloom.BeginDraw();
             if (saveToImage)
             {
                 screenshot = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth, GraphicsDevice.PresentationParameters.BackBufferHeight, false, SurfaceFormat.Bgra32, DepthFormat.None);
@@ -174,12 +195,21 @@ namespace TriangleRender
             basicEffect.Projection = projectionMatrix;
             basicEffect.View = viewMatrix;
             basicEffect.World = worldMatrix;
-            basicEffect.EnableDefaultLighting();
-            basicEffect.DirectionalLight0.DiffuseColor = new Vector3(0.5f, 0, 0);
+            //basicEffect.EnableDefaultLighting();
+            basicEffect.DirectionalLight0.Enabled = true;
+            basicEffect.DirectionalLight1.Enabled = false;
+            basicEffect.DirectionalLight2.Enabled = true;
+            basicEffect.DirectionalLight0.DiffuseColor = new Vector3(1.0f, 1.0f, 1.0f);
             basicEffect.DirectionalLight0.Direction = new Vector3(1, 0, 0);
-            basicEffect.DirectionalLight0.SpecularColor = new Vector3(0, 1, 0);
+            basicEffect.DirectionalLight0.SpecularColor = new Vector3(0.5f, 0.5f, 0.5f);
+            basicEffect.DirectionalLight1.DiffuseColor = new Vector3(0.5f, 0.5f, 0.5f);
+            basicEffect.DirectionalLight1.Direction = new Vector3(0, 1, 0);
+            basicEffect.DirectionalLight1.SpecularColor = new Vector3(0.5f, 0.5f, 0.5f);
+            basicEffect.DirectionalLight2.DiffuseColor = new Vector3(0.25f, 0.25f, 0.25f);
+            basicEffect.DirectionalLight2.Direction = new Vector3(0, 0, 1);
+            basicEffect.DirectionalLight2.SpecularColor = new Vector3(0.5f, 0.5f, 0.5f);
             basicEffect.AmbientLightColor = new Vector3(0.2f, 0.2f, 0.2f);
-            basicEffect.EmissiveColor = new Vector3(1, 0, 0);
+            basicEffect.EmissiveColor = new Vector3(0.2f, 0.2f, 0.2f);
             GraphicsDevice.Clear(new Microsoft.Xna.Framework.Color(32,32,32));
             GraphicsDevice.SetVertexBuffer(vertexBuffer);
 
@@ -188,11 +218,9 @@ namespace TriangleRender
             rasterizerState.CullMode = CullMode.None;
             GraphicsDevice.RasterizerState = rasterizerState;
 
-            foreach (EffectPass pass in basicEffect.CurrentTechnique.
-                    Passes)
-            {
+            foreach (EffectPass pass in basicEffect.CurrentTechnique.Passes){
                 pass.Apply();
-                GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 0, triangleVertices.Length);
+                GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 0, vertexBuffer.VertexCount);
             }
 
             base.Draw(gameTime);
