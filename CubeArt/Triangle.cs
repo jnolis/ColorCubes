@@ -64,7 +64,7 @@ namespace TriangleRender
             //System.Console.WriteLine(bloom.Settings.BloomThreshold.ToString());
 
             worldMatrix = Matrix.Identity;
-            viewMatrix = Matrix.CreateLookAt(new Vector3(-width/2,-width/2, -width/ 2), new Vector3(0,0, 0), new Vector3(0, 0, -1));
+            viewMatrix = Matrix.CreateLookAt(new Vector3(width/2,width/2, width/ 2), new Vector3(0,0, 0), new Vector3(0, 0, 1));
 
 
 
@@ -84,10 +84,8 @@ namespace TriangleRender
             //vertexBuffer = new VertexBuffer(GraphicsDevice, typeof(
             //   Helpers.VertexPositionColorNormal), 36, BufferUsage.
             //   WriteOnly);
-            Generate.Shapes.Vertex [] [] cubes = {
-                    Generate.Shapes.shiftRandomVertices(10, Generate.Shapes.cubeToTriangles(Generate.Shapes.colorCube(3, Generate.Shapes.createColor(0.5, 0.5, 0.5)))),
-                    Generate.Shapes.shiftRandomVertices(10, Generate.Shapes.cubeToTriangles(Generate.Shapes.colorCube(2, Generate.Shapes.createColor(0.5, 0.75, 0.65))))
-                };
+            Generate.Shapes.Vertex [] [] cubes = 
+                    Generate.Vertices.shapesToTriangles(Generate.Clusters.simpleStack(new Generate.Shapes.Position(0,0,0),8,System.Drawing.Color.Gray));
             int vertexCount = 0;
 
             for(int i = 0; i < cubes.Length; i++)
@@ -110,51 +108,6 @@ namespace TriangleRender
 
             }
             vertexBuffer = new VertexBuffer(GraphicsDevice, typeof(Helpers.VertexPositionColorNormal), triangleVertices.Length, BufferUsage.WriteOnly);
-            ////Geometry  - a simple triangle about the origin
-            //triangleVertices = new Helpers.VertexPositionColorNormal[36];
-
-            //triangleVertices[0 ] = new Helpers.VertexPositionColorNormal(new Vector3( 0, 0, 0), new Microsoft.Xna.Framework.Color(0.5F, 0.0F, 0.0F), new Vector3(0, 0, -1));
-            //triangleVertices[1 ] = new Helpers.VertexPositionColorNormal(new Vector3( 0, 1, 0), new Microsoft.Xna.Framework.Color(0.5F, 0.0F, 0.0F), new Vector3(0, 0, -1));
-            //triangleVertices[2 ] = new Helpers.VertexPositionColorNormal(new Vector3( 1, 1, 0), new Microsoft.Xna.Framework.Color(0.5F, 0.0F, 0.0F), new Vector3(0, 0, -1));
-            //triangleVertices[3 ] = new Helpers.VertexPositionColorNormal(new Vector3( 0, 0, 0), new Microsoft.Xna.Framework.Color(1.0F, 0.0F, 0.0F), new Vector3(0, 0, -1));
-            //triangleVertices[4 ] = new Helpers.VertexPositionColorNormal(new Vector3( 1, 0, 0), new Microsoft.Xna.Framework.Color(1.0F, 0.0F, 0.0F), new Vector3(0, 0, -1));
-            //triangleVertices[5 ] = new Helpers.VertexPositionColorNormal(new Vector3( 1, 1, 0), new Microsoft.Xna.Framework.Color(1.0F, 0.0F, 0.0F), new Vector3(0, 0, -1));
-
-            //triangleVertices[6 ] = new Helpers.VertexPositionColorNormal(new Vector3( 0, 0, 0), new Microsoft.Xna.Framework.Color(0.0F, 0.5F, 0.0F), new Vector3(-1,0,0));
-            //triangleVertices[7 ] = new Helpers.VertexPositionColorNormal(new Vector3( 0, 1, 0), new Microsoft.Xna.Framework.Color(0.0F, 0.5F, 0.0F), new Vector3(-1,0,0));
-            //triangleVertices[8 ] = new Helpers.VertexPositionColorNormal(new Vector3( 0, 1, 1), new Microsoft.Xna.Framework.Color(0.0F, 0.5F, 0.0F), new Vector3(-1,0,0));
-            //triangleVertices[9 ] = new Helpers.VertexPositionColorNormal(new Vector3( 0, 0, 0), new Microsoft.Xna.Framework.Color(0.0F, 1.0F, 0.0F), new Vector3(-1,0,0));
-            //triangleVertices[10] = new Helpers.VertexPositionColorNormal(new Vector3( 0, 0, 1), new Microsoft.Xna.Framework.Color(0.0F, 1.0F, 0.0F), new Vector3(-1,0,0));
-            //triangleVertices[11] = new Helpers.VertexPositionColorNormal(new Vector3( 0, 1, 1), new Microsoft.Xna.Framework.Color(0.0F, 1.0F, 0.0F), new Vector3(-1,0,0));
-
-            //triangleVertices[12] = new Helpers.VertexPositionColorNormal(new Vector3(0, 0, 0), new Microsoft.Xna.Framework.Color(0.0F, 0.0F, 0.5F), new Vector3(0, -1,0));
-            //triangleVertices[13] = new Helpers.VertexPositionColorNormal(new Vector3(1, 0, 0), new Microsoft.Xna.Framework.Color(0.0F, 0.0F, 0.5F), new Vector3(0, -1,0));
-            //triangleVertices[14] = new Helpers.VertexPositionColorNormal(new Vector3(1, 0, 1), new Microsoft.Xna.Framework.Color(0.0F, 0.0F, 0.5F), new Vector3(0, -1,0));
-            //triangleVertices[15] = new Helpers.VertexPositionColorNormal(new Vector3(0, 0, 0), new Microsoft.Xna.Framework.Color(0.0F, 0.0F, 1.0F), new Vector3(0, -1,0));
-            //triangleVertices[16] = new Helpers.VertexPositionColorNormal(new Vector3(0, 0, 1), new Microsoft.Xna.Framework.Color(0.0F, 0.0F, 1.0F), new Vector3(0, -1,0));
-            //triangleVertices[17] = new Helpers.VertexPositionColorNormal(new Vector3(1, 0, 1), new Microsoft.Xna.Framework.Color(0.0F, 0.0F, 1.0F), new Vector3(0, -1,0));
-
-            //triangleVertices[18] = new Helpers.VertexPositionColorNormal(new Vector3(1, 1, 1), new Microsoft.Xna.Framework.Color(0.0F, 0.5F, 0.5F), new Vector3(0,1,0));
-            //triangleVertices[19] = new Helpers.VertexPositionColorNormal(new Vector3(1, 0, 0), new Microsoft.Xna.Framework.Color(0.0F, 0.5F, 0.5F), new Vector3(0,1,0));
-            //triangleVertices[20] = new Helpers.VertexPositionColorNormal(new Vector3(1, 0, 1), new Microsoft.Xna.Framework.Color(0.0F, 0.5F, 0.5F), new Vector3(0,1,0));
-            //triangleVertices[21] = new Helpers.VertexPositionColorNormal(new Vector3(1, 1, 1), new Microsoft.Xna.Framework.Color(0.0F, 1.0F, 1.0F), new Vector3(0,1,0));
-            //triangleVertices[22] = new Helpers.VertexPositionColorNormal(new Vector3(0, 0, 1), new Microsoft.Xna.Framework.Color(0.0F, 1.0F, 1.0F), new Vector3(0,1,0));
-            //triangleVertices[23] = new Helpers.VertexPositionColorNormal(new Vector3(1, 0, 1), new Microsoft.Xna.Framework.Color(0.0F, 1.0F, 1.0F), new Vector3(0,1,0));
-
-            //triangleVertices[24] = new Helpers.VertexPositionColorNormal(new Vector3(1, 1, 1), new Microsoft.Xna.Framework.Color(0.5F, 0.5F, 0.0F), new Vector3(0,0,1));
-            //triangleVertices[25] = new Helpers.VertexPositionColorNormal(new Vector3(1, 0, 0), new Microsoft.Xna.Framework.Color(0.5F, 0.5F, 0.0F), new Vector3(0,0,1));
-            //triangleVertices[26] = new Helpers.VertexPositionColorNormal(new Vector3(1, 1, 0), new Microsoft.Xna.Framework.Color(0.5F, 0.5F, 0.0F), new Vector3(0,0,1));
-            //triangleVertices[27] = new Helpers.VertexPositionColorNormal(new Vector3(1, 1, 1), new Microsoft.Xna.Framework.Color(1.0F, 1.0F, 0.0F), new Vector3(0,0,1));
-            //triangleVertices[28] = new Helpers.VertexPositionColorNormal(new Vector3(0, 1, 0), new Microsoft.Xna.Framework.Color(1.0F, 1.0F, 0.0F), new Vector3(0,0,1));
-            //triangleVertices[29] = new Helpers.VertexPositionColorNormal(new Vector3(1, 1, 0), new Microsoft.Xna.Framework.Color(1.0F, 1.0F, 0.0F), new Vector3(0,0,1));
-
-            //triangleVertices[30] = new Helpers.VertexPositionColorNormal(new Vector3(1, 1, 1), new Microsoft.Xna.Framework.Color(0.5F, 0.0F, 0.5F), new Vector3(1,0,0));
-            //triangleVertices[31] = new Helpers.VertexPositionColorNormal(new Vector3(0, 1, 0), new Microsoft.Xna.Framework.Color(0.5F, 0.0F, 0.5F), new Vector3(1,0,0));
-            //triangleVertices[32] = new Helpers.VertexPositionColorNormal(new Vector3(0, 1, 1), new Microsoft.Xna.Framework.Color(0.5F, 0.0F, 0.5F), new Vector3(1,0,0));
-            //triangleVertices[33] = new Helpers.VertexPositionColorNormal(new Vector3(1, 1, 1), new Microsoft.Xna.Framework.Color(1.0F, 0.0F, 1.0F), new Vector3(1,0,0));
-            //triangleVertices[34] = new Helpers.VertexPositionColorNormal(new Vector3(0, 0, 1), new Microsoft.Xna.Framework.Color(1.0F, 0.0F, 1.0F), new Vector3(1,0,0));
-            //triangleVertices[35] = new Helpers.VertexPositionColorNormal(new Vector3(0, 1, 1), new Microsoft.Xna.Framework.Color(1.0F, 0.0F, 1.0F), new Vector3(1,0,0));
-
             vertexBuffer.SetData<Helpers.VertexPositionColorNormal>(triangleVertices);
 
 
@@ -200,13 +153,13 @@ namespace TriangleRender
             basicEffect.DirectionalLight1.Enabled = false;
             basicEffect.DirectionalLight2.Enabled = true;
             basicEffect.DirectionalLight0.DiffuseColor = new Vector3(1.0f, 1.0f, 1.0f);
-            basicEffect.DirectionalLight0.Direction = new Vector3(1, 0, 0);
+            basicEffect.DirectionalLight0.Direction = new Vector3(-1, 0, 0);
             basicEffect.DirectionalLight0.SpecularColor = new Vector3(0.5f, 0.5f, 0.5f);
             basicEffect.DirectionalLight1.DiffuseColor = new Vector3(0.5f, 0.5f, 0.5f);
-            basicEffect.DirectionalLight1.Direction = new Vector3(0, 1, 0);
+            basicEffect.DirectionalLight1.Direction = new Vector3(0, -1, 0);
             basicEffect.DirectionalLight1.SpecularColor = new Vector3(0.5f, 0.5f, 0.5f);
             basicEffect.DirectionalLight2.DiffuseColor = new Vector3(0.25f, 0.25f, 0.25f);
-            basicEffect.DirectionalLight2.Direction = new Vector3(0, 0, 1);
+            basicEffect.DirectionalLight2.Direction = new Vector3(0, 0, -1);
             basicEffect.DirectionalLight2.SpecularColor = new Vector3(0.5f, 0.5f, 0.5f);
             basicEffect.AmbientLightColor = new Vector3(0.2f, 0.2f, 0.2f);
             basicEffect.EmissiveColor = new Vector3(0.2f, 0.2f, 0.2f);

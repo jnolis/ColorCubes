@@ -3,11 +3,27 @@ open System.Drawing
 open System
 
 module Shapes =
-
-    type Cube = {
-        N: int
+    type RectangularPrism = {
+        NX: int
+        NY: int
+        NZ: int
         Points: Map<int*int*int,Color>
+    }
+    type Position = {
+        X: int
+        Y: int
+        Z: int
         }
+
+    type ShapeWithPosition = {
+        Position: Position
+        Shape: RectangularPrism
+    }
+
+    type GridType =
+        | Diamond
+        | Square
+        | Basic
 
     type Vertex = 
         {
@@ -21,7 +37,6 @@ module Shapes =
         NormalY: float
         NormalZ: float
         }
-
     let createColor (r:float) (g:float) (b:float) =
         Color.FromArgb(255, int (r*255.0), int (g*255.0), int (b*255.0) )
 
@@ -52,15 +67,19 @@ module Shapes =
         | 4 -> Color.FromArgb(255, t, p, v)
         | _ -> Color.FromArgb(255, v, p, q)
         
-    let randomizeColor (r:System.Random) (step:float) (color:Color)  =
+    let randomizeValue (r:System.Random) (step:float) (color:Color)  =
         let (baseH,baseS,baseV) = colorToHsv color
-        let angle = r.NextDouble()*360.0
         let dist = Math.Sqrt(-2.0*Math.Log(r.NextDouble())) * Math.Sin(2.0*Math.PI*r.NextDouble())
-        let addedS = 0.0 //Math.Sin(angle)*step*dist
-        let addedV = Math.Cos(angle)*step*dist
-        let newS = (baseS + addedS) |> min 1.0 |> max 0.0
+        let addedV = step*dist
         let newV = (baseV + addedV) |> min 1.0 |> max 0.0
-        colorFromHsv (baseH,newS,newV)
+        colorFromHsv (baseH,baseS,newV)
+
+    let randomizeSaturation (r:System.Random) (step:float) (color:Color)  =
+        let (baseH,baseS,baseV) = colorToHsv color
+        let dist = Math.Sqrt(-2.0*Math.Log(r.NextDouble())) * Math.Sin(2.0*Math.PI*r.NextDouble())
+        let addedV = step*dist
+        let newV = (baseV + addedV) |> min 1.0 |> max 0.0
+        colorFromHsv (baseH,baseS,newV)
 
     let averageColors (colors: Color seq) =
         let (totalHue,totalSaturation,totalValue,count) =
@@ -71,102 +90,161 @@ module Shapes =
         colorFromHsv (totalHue/floatCount,totalSaturation/floatCount,totalValue/floatCount)
   
 
-    let generateAllPointsOnSurface (isDiamond:bool) (n:int) (step:int) =
-        let side = 
-            if not isDiamond then
-                seq {for x in [0..n/step] do
-                        let isEven = x % 2 = 0
-                        let yChoices =  [0..(if isEven then n/step/2 - 1 else n/step/2)]
-                        for y in yChoices do 
-                            yield (x*step,(if isEven then y*step*2 + step else y*step*2) )}
-            else 
-                seq {for x in [0..(n/(step*2)-1)] do 
-                         for y in [0..(n/(step*2)-1)] do
-                             yield ((x*2*step+step),(y*2*step+step))}
+    let generateAllPointsOnSurface (gridType:GridType) (nX:int) (nY:int) (nZ:int) (step:int) =
+        let side (nA:int) (nB:int) = 
+            match gridType with
+            | Square ->
+                seq {for a in [0..nA/step] do
+                        let isEven = a % 2 = 0
+                        let bChoices =  [0..(if isEven then nB/step/2 - 1 else nB/step/2)]
+                        for b in bChoices do 
+                            yield (a*step,(if isEven then b*step*2 + step else b*step*2) )}
+            | Diamond -> 
+                seq {for a in [0..(nA/(step*2)-1)] do 
+                         for b in [0..(nB/(step*2)-1)] do
+                             yield ((a*2*step+step),(b*2*step+step))}
+            | Basic -> 
+                seq {for a in [0..(nA/step)] do 
+                         for b in [0..(nB/step)] do
+                             yield (a*step,b*step)}
         seq [
-            (fun (x,y) -> (0,x,y))
-            (fun (x,y) -> (n,x,y))
-            (fun (x,y) -> (x,0,y))
-            (fun (x,y) -> (x,n,y))
-            (fun (x,y) -> (x,y,0))
-            (fun (x,y) -> (x,y,n))
+            ((fun (a,b) -> (0,a,b)),nY,nZ)
+            ((fun (a,b) -> (nX,a,b)),nY,nZ)
+            ((fun (a,b) -> (a,0,b)),nX,nZ)
+            ((fun (a,b) -> (a,nY,b)),nX,nZ)
+            ((fun (a,b) -> (a,b,0)),nX,nY)
+            ((fun (a,b) -> (a,b,nZ)),nX,nY)
             ]
-        |> Seq.collect (fun changer -> Seq.map changer side)
+        |> Seq.collect (fun (changer, nA, nB) -> Seq.map changer (side nA nB))
         |> Seq.distinct
         |> Seq.cache
         
-    let isOnPlane n a =
-        a = 0 || a = n
+    let isOnPlane nA a =
+        a = 0 || a = nA
 
-    let getNeighbors isDiamond n step ((x,y,z):(int*int*int)) =
+    let getNeighbors isDiamond nX nY nZ step ((x,y,z):(int*int*int)) =
         if isDiamond then
-            if isOnPlane n x then [(x,y-step,z-step);(x,y-step,z+step);(x,y+step,z-step);(x,y+step,z+step)]
-            else if isOnPlane n y then [(x-step,y,z-step);(x-step,y,z+step);(x+step,y,z-step);(x+step,y,z+step)]
-            else if isOnPlane n z then [(x-step,y-step,z);(x+step,y-step,z);(x-step,y+step,z);(x+step,y+step,z)]
+            if isOnPlane nX x then [(x,y-step,z-step);(x,y-step,z+step);(x,y+step,z-step);(x,y+step,z+step)]
+            else if isOnPlane nY y then [(x-step,y,z-step);(x-step,y,z+step);(x+step,y,z-step);(x+step,y,z+step)]
+            else if isOnPlane nZ z then [(x-step,y-step,z);(x+step,y-step,z);(x-step,y+step,z);(x+step,y+step,z)]
             else List.empty
         else
             seq [
-                    (if isOnPlane n x then [(x,y-step,z);(x,y+step,z);(x,y,z-step);(x,y,z+step)] else List.empty)
-                    (if isOnPlane n y then [(x-step,y,z);(x-step,y,z);(x,y,z-step);(x,y,z+step)] else List.empty)
-                    (if isOnPlane n z then [(x-step,y,z);(x+step,y,z);(x,y-step,z);(x,y+step,z)] else List.empty)
+                    (if isOnPlane nX x then [(x,y-step,z);(x,y+step,z);(x,y,z-step);(x,y,z+step)] else List.empty)
+                    (if isOnPlane nY y then [(x-step,y,z);(x-step,y,z);(x,y,z-step);(x,y,z+step)] else List.empty)
+                    (if isOnPlane nZ z then [(x-step,y,z);(x+step,y,z);(x,y-step,z);(x,y+step,z)] else List.empty)
                     ]
                 |> List.concat
 
-    let colorCube (logN:int) (baseColor: Color) : Cube =
-        let n = Seq.replicate logN 2 |> Seq.reduce (*)
+    let rec gcd (a:int) (b:int) = 
+        if b = 0 then a else gcd b (a % b)
+
+    let rec greatestPowerOfTwo powersSoFar a =
+        if a % 2 = 1 then
+            powersSoFar
+        else greatestPowerOfTwo (powersSoFar*2) (a/2)
+
+    let log2 a =
+        let rec log2Inner current a =
+            if a = 1 
+            then current 
+            else log2Inner (current + 1) (a/2)
+        log2Inner 0 a
+
+    let pow2 a =
+        Seq.replicate a 2
+        |> Seq.fold (*) 1
+
+    let seqRandom (r:System.Random) (s: 'T seq) =
+        let length = Seq.length s
+        Seq.item (r.Next(length)) s
+
+    let colorRectangularPrism (r:System.Random) (nX:int) (nY:int) (nZ:int) (baseColor: Color) : RectangularPrism =
         let baseRandomStep = 0.2
         let stepRandomStep = 0.05
-        let r = new System.Random()
+        let initialGridStep = 
+                [nX;nY;nZ]
+                |> List.map (greatestPowerOfTwo 1)
+                |> List.min
         let initial = 
-            seq [
-                (0,0,0)
-                (0,0,n)
-                (0,n,0)
-                (0,n,n)
-                (n,0,0)
-                (n,0,n)
-                (n,n,0)
-                (n,n,n)
-                ]
-            |> Seq.map (fun p -> (p,randomizeColor r baseRandomStep baseColor))
+            generateAllPointsOnSurface Basic nX nY nZ initialGridStep
+            |> Seq.map (fun p -> (p,randomizeValue r baseRandomStep baseColor))
             |> Map.ofSeq
             
              
-        let takeStep (isDiamond:bool) (n:int) (stepSize:int) (current:Map<(int*int*int),Color>) =
-            generateAllPointsOnSurface isDiamond n stepSize
+        let takeStep (isDiamond:bool) (nX:int) (nY:int) (nZ:int) (stepSize:int) (current:Map<(int*int*int),Color>) =
+            let gridType = if isDiamond then Diamond else Square
+            generateAllPointsOnSurface gridType nX nY nZ stepSize
             |> Seq.map 
                 (fun point ->
                     let newColor =
-                        getNeighbors isDiamond n stepSize point
+                        getNeighbors isDiamond nX nY nZ stepSize point
                         |> Seq.choose (fun neighbor -> Map.tryFind neighbor current)
                         |> averageColors
-                        |> randomizeColor r stepRandomStep
+                        |> randomizeValue r stepRandomStep
                     (point,newColor))
             |> Seq.fold (fun current (point,color) -> Map.add point color current) current
             
         let points =
-            Seq.init logN id
+            Seq.init (log2 initialGridStep) id
             |> Seq.scan (fun c i -> c*2) 1
             |> Seq.rev
             |> Seq.tail //up to this is to generate the step sizes
-            |> Seq.collect (fun stepSize -> seq [(takeStep true n stepSize);(takeStep false n stepSize)])
+            |> Seq.collect (fun stepSize -> seq [(takeStep true nX nY nZ stepSize);(takeStep false nX nY nZ stepSize)])
             |> Seq.fold (fun c takeStep -> takeStep c) initial
-        {Points = points; N = n}
+        {Points = points; NX = nX; NY = nY; NZ = nZ}
 
-    let cubeToTriangles (cube:Cube) = 
-        let n = cube.N
+module Clusters =
+    open Shapes
+    let spawnRectFromRect (r:System.Random) (maxSideSize:int) (color:Color) (s:ShapeWithPosition) =
+        let rect = s.Shape
+        let p = s.Position
+        
+        let logOldNx = log2 rect.NX
+        let logOldNy = log2 rect.NY
+
+        let nX = r.Next(logOldNx) + 1 |> pow2
+        let nY = r.Next(logOldNy) + 1 |> pow2
+        let nZ = r.Next(log2 maxSideSize) + 1 |> pow2
+        let pX = p.X + r.Next(rect.NX-nX+1)
+        let pY = p.Y + r.Next(rect.NY-nY+1)
+        let pZ = p.Z + rect.NZ
+        let shape = colorRectangularPrism r nX nY nZ color
+        {Position = {X = pX;Y = pY; Z = pZ}; Shape = shape}
+
+    let simpleStack (startingPosition:Position) (maxSideSize:int) (color:Color) =
+        let r = new System.Random()
+        let initial = 
+            let nX = r.Next(log2 maxSideSize) + 1 |> pow2
+            let nY = r.Next(log2 maxSideSize) + 1 |> pow2
+            let nZ = r.Next(log2 maxSideSize) + 1 |> pow2
+            let shape = colorRectangularPrism r nX nY nZ color
+            {Position=startingPosition;Shape=shape}
+        let second = spawnRectFromRect r maxSideSize Color.Red initial
+        [initial;second]
+
+module Vertices =
+    open Shapes
+    let shiftVertices (position:Position) (vertices: Vertex array) =
+        vertices
+        |> Array.map (fun v -> {v with PositionX = v.PositionX + (float position.X); PositionY = v.PositionY + (float position.Y); PositionZ = v.PositionZ + (float position.Z)})
+
+    let shapeToTriangles (s:ShapeWithPosition) =
+        let position = s.Position
+        let rect = s.Shape 
+        let r = new System.Random()
         let sideInfo =
             seq [
-                ((fun (a,b) -> (0,a,b)),(-1.0,0.0,0.0))
-                ((fun (a,b) -> (n,a,b)),(1.0,0.0,0.0))
-                ((fun (a,b) -> (a,0,b)),(0.0,-1.0,0.0))
-                ((fun (a,b) -> (a,n,b)),(0.0,1.0,0.0))
-                ((fun (a,b) -> (a,b,0)),(0.0,0.0,-1.0))
-                ((fun (a,b) -> (a,b,n)),(0.0,0.0,1.0))
+                (((fun (a,b) -> (0,a,b)),(-1.0,0.0,0.0)),rect.NY,rect.NZ)
+                (((fun (a,b) -> (rect.NX,a,b)),(1.0,0.0,0.0)),rect.NY,rect.NZ)
+                (((fun (a,b) -> (a,0,b)),(0.0,-1.0,0.0)),rect.NX,rect.NZ)
+                (((fun (a,b) -> (a,rect.NY,b)),(0.0,1.0,0.0)),rect.NX,rect.NZ)
+                (((fun (a,b) -> (a,b,0)),(0.0,0.0,-1.0)),rect.NX,rect.NY)
+                (((fun (a,b) -> (a,b,rect.NZ)),(0.0,0.0,1.0)),rect.NX,rect.NY)
                 ]
-        let getTriangles ((sideMap,sideNormal):((int*int->int*int*int)*(float*float*float))) =
-            seq {for a in [0..(n-1)] do
-                    for b in [0..(n-1)] do 
+        let getTriangles (nA:int) (nB:int) ((sideMap,sideNormal):((int*int->int*int*int)*(float*float*float))) =
+            seq {for a in [0..(nA-1)] do
+                    for b in [0..(nB-1)] do 
                         for side in [true;false] do 
                             let points = 
                                 seq [(a,b);(if side then (a,b+1) else (a+1,b));(a+1,b+1)]
@@ -174,8 +252,8 @@ module Shapes =
                                 |> Seq.cache
                             let color =
                                 points
-                                |> Seq.map (fun point -> Map.find point cube.Points)
-                                |> averageColors
+                                |> Seq.map (fun point -> Map.find point rect.Points)
+                                |> seqRandom r
                             let fullPoints =
                                 points
                                 |> Seq.map (fun point -> (point,color,sideNormal))
@@ -183,7 +261,7 @@ module Shapes =
             |> Seq.collect id
             
         sideInfo
-        |> Seq.collect (fun side -> getTriangles side)
+        |> Seq.collect (fun (side,nA,nB) -> getTriangles nA nB side)
         |> Seq.map (fun ((x,y,z),color,(nX,nY,nZ)) -> 
             {
                 PositionX = float x
@@ -197,16 +275,9 @@ module Shapes =
                 NormalZ = nZ
             })
         |> Array.ofSeq
+        |> shiftVertices position
 
-    let randomLocation (range:int) =
-        let r = new System.Random()
-        let randomInRange () = float (r.Next(range) * (r.Next(2)*2-1))
-        (randomInRange(), randomInRange(), randomInRange())
-
-    let shiftVertices (position:float*float*float) (vertices: Vertex array) =
-        let (x,y,z) = position
-        vertices
-        |> Array.map (fun v -> {v with PositionX = v.PositionX + x; PositionY = v.PositionY + y; PositionZ = v.PositionZ + z})
-
-    let shiftRandomVertices range vertices =
-        shiftVertices (randomLocation range) vertices
+    let shapesToTriangles (shapes: ShapeWithPosition list) = 
+        shapes
+        |> List.toArray
+        |> Array.map shapeToTriangles
